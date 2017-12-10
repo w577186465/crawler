@@ -2,29 +2,62 @@ package crawler
 
 import (
 	"fmt"
-	"net"
+	// "net"
 	"net/http"
-	"time"
+	// "io/ioutil"
+	// "time"
+	"strings"
+	"github.com/PuerkitoBio/goquery"
+	// "github.com/axgle/mahonia"
 )
 
 type Request struct {
 	Method string
 }
 
-// 简单下载器
-func Download(url string) (*http.Response, bool) {
-	resp, err := http.Get(url)
+type Response struct {
+	Response *http.Response
+}
+
+// simple downloader
+func Download(url string) (*Response) {
+	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", url, nil) // 发起请求
+
+	host := gethost(url) // get host
+
+	req.Header.Add("Host", host)
+	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36")
 
 	resp, err := client.Do(req)
 
 	if err != nil || resp.StatusCode >= 400 {
 		fmt.Println("网页打开失败")
-		return nil, false
+		return nil
 	}
 
-	return resp, true
+	response := Response{
+		Response: resp,
+	}
+
+	return &response
+}
+
+// get string url host
+func gethost (url string) string {
+	a1 := strings.Split(url, "//")[1]
+    return strings.Split(a1, "/")[0]
+}
+
+func (d Response) Json () {
+
+}
+
+func (d Response) Html () (*goquery.Document, error) {
+	resp := d.Response
+	defer resp.Body.Close()
+	return goquery.NewDocumentFromReader(resp.Body)
 }
 
 // func (Request) Download(url string) {
