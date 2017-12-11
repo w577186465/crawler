@@ -15,3 +15,20 @@ func Test_Html(t *testing.T) {
 	title := html.Find("title").Text()
 	fmt.Println(title)
 }
+
+func Test_json(t *testing.T) {
+	json, _ := Download("http://localhost/test/").Json()
+	title, _ := json.Get("title").String()
+	fmt.Println(title)
+}
+
+func Test_jsonp(t *testing.T) {
+	url := "http://money.finance.sina.com.cn/d/api/openapi_proxy.php/?__s=[[%22hq%22,%22hs_a%22,%22%22,0,2,40]]&callback=FDC_DC.theTableData"
+	json, err := Download(url).Jsonp()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	count, _ := json.GetIndex(0).Get("day").String()
+	fmt.Println(count)
+}

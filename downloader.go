@@ -3,11 +3,15 @@ package crawler
 import (
 	"fmt"
 	// "net"
+	"io/ioutil"
 	"net/http"
-	// "io/ioutil"
 	// "time"
-	"strings"
+	// "bytes"
+	"errors"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/bitly/go-simplejson"
+	"regexp"
+	"strings"
 	// "github.com/axgle/mahonia"
 )
 
@@ -20,7 +24,7 @@ type Response struct {
 }
 
 // simple downloader
-func Download(url string) (*Response) {
+func Download(url string) *Response {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", url, nil) // 发起请求
@@ -44,17 +48,36 @@ func Download(url string) (*Response) {
 	return &response
 }
 
-// get string url host
-func gethost (url string) string {
+// 获取url的host
+func gethost(url string) string {
 	a1 := strings.Split(url, "//")[1]
-    return strings.Split(a1, "/")[0]
+	return strings.Split(a1, "/")[0]
 }
 
-func (d Response) Json () {
-
+func (d Response) Json() (*simplejson.Json, error) {
+	defer d.Response.Body.Close()
+	body, _ := ioutil.ReadAll(d.Response.Body)
+	return simplejson.NewJson(body)
 }
 
-func (d Response) Html () (*goquery.Document, error) {
+/*
+	jsonp 转 json
+	正则提取出jsonp的json
+*/
+func (d Response) Jsonp() (*simplejson.Json, error) {
+	defer d.Response.Body.Close()
+	body, _ := ioutil.ReadAll(d.Response.Body)
+
+	reg := regexp.MustCompile(`^[^\[{]*([\[{][\s\S]*?[\]}])[^\]}]*$`) // 提取json正则表达式
+	match := reg.FindSubmatch(body)                                   // 提取json
+	if len(match) < 2 {
+		return nil, errors.New("jsonp提取json失败，正则无法匹配")
+	}
+
+	return simplejson.NewJson(match[1])
+}
+
+func (d Response) Html() (*goquery.Document, error) {
 	resp := d.Response
 	defer resp.Body.Close()
 	return goquery.NewDocumentFromReader(resp.Body)
